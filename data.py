@@ -1,6 +1,6 @@
 import numpy as np
 
-def generate_data(time_steps=1200, features=5):
+def generate_data(time_steps=1200, features=4):
     np.random.seed(42)
     t = np.arange(time_steps)
     data = np.zeros((time_steps, features))
@@ -19,3 +19,4 @@ def create_sequences(data, seq_len=20):
         X.append(data[i:i+seq_len])
         y.append(data[i+seq_len, 0])
     return np.array(X), np.array(y)
+
