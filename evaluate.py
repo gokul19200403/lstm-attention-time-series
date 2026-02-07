@@ -2,7 +2,11 @@ import torch
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from data import generate_data, create_sequences
-from model import LSTMAttentionModel
+from model import LSTMAttentionModel, BaselineLSTM
+
+def mape(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
 data = generate_data()
 X, y = create_sequences(data)
@@ -11,24 +15,31 @@ split = int(0.8 * len(X))
 X_test, y_test = X[split:], y[split:]
 
 X_test = torch.tensor(X_test, dtype=torch.float32)
-y_test = y_test
 
-model = LSTMAttentionModel(input_dim=X.shape[2])
-model.load_state_dict(torch.load("model.pt"))
-model.eval()
+models = {
+    "attention": LSTMAttentionModel(input_dim=X.shape[2]),
+    "baseline": BaselineLSTM(input_dim=X.shape[2])
+}
 
-with torch.no_grad():
-    preds, attn = model(X_test)
+for name, model in models.items():
+    model.load_state_dict(torch.load(f"{name}.pt"))
+    model.eval()
 
-preds = preds.numpy()
+    with torch.no_grad():
+        if name == "attention":
+            preds, attn = model(X_test)
+        else:
+            preds = model(X_test)
 
-rmse = np.sqrt(mean_squared_error(y_test, preds))
-mae = mean_absolute_error(y_test, preds)
+    preds = preds.numpy()
 
-print("RMSE:", rmse)
-print("MAE:", mae)
+    print(f"\n{name.upper()} MODEL RESULTS")
+    print("RMSE:", np.sqrt(mean_squared_error(y_test, preds)))
+    print("MAE:", mean_absolute_error(y_test, preds))
+    print("MAPE:", mape(y_test, preds))
 
-avg_attention = attn.mean(dim=0).squeeze().numpy()
-print("Average Attention (last 5 steps):", avg_attention[-5:])
+    if name == "attention":
+        avg_attn = attn.mean(dim=0).squeeze().numpy()
+        print("Top attention weights (last 5 steps):", avg_attn[-5:])
 
-print("Final test predictions:", preds[:5])
+print("\nFinal test predictions:", preds[:5])
