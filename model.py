@@ -21,8 +21,7 @@ class LSTMAttentionModel(nn.Module):
     def forward(self, x):
         lstm_out, _ = self.lstm(x)
         context, attn_weights = self.attention(lstm_out)
-        out = self.fc(context)
-        return out.squeeze(), attn_weights
+        return self.fc(context).squeeze(), attn_weights
 
 class BaselineLSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim=64):
@@ -32,6 +31,4 @@ class BaselineLSTM(nn.Module):
 
     def forward(self, x):
         out, _ = self.lstm(x)
-        out = out[:, -1, :]
-        return self.fc(out).squeeze()
-
+        return self.fc(out[:, -1, :]).squeeze()
