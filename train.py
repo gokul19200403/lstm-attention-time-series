@@ -1,9 +1,9 @@
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from data import generate_data, create_sequences
-from model import LSTMAttentionModel
+from model import LSTMAttentionModel, BaselineLSTM
 
-def train_model():
+def train():
     data = generate_data()
     X, y = create_sequences(data)
 
@@ -15,19 +15,27 @@ def train_model():
 
     loader = DataLoader(TensorDataset(X_train, y_train), batch_size=32, shuffle=True)
 
-    model = LSTMAttentionModel(input_dim=X.shape[2])
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    loss_fn = torch.nn.MSELoss()
+    models = {
+        "attention": LSTMAttentionModel(input_dim=X.shape[2]),
+        "baseline": BaselineLSTM(input_dim=X.shape[2])
+    }
 
-    for epoch in range(15):
-        for xb, yb in loader:
-            optimizer.zero_grad()
-            preds, _ = model(xb)
-            loss = loss_fn(preds, yb)
-            loss.backward()
-            optimizer.step()
+    for name, model in models.items():
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        loss_fn = torch.nn.MSELoss()
 
-    torch.save(model.state_dict(), "model.pt")
+        for _ in range(15):
+            for xb, yb in loader:
+                optimizer.zero_grad()
+                if name == "attention":
+                    preds, _ = model(xb)
+                else:
+                    preds = model(xb)
+                loss = loss_fn(preds, yb)
+                loss.backward()
+                optimizer.step()
+
+        torch.save(model.state_dict(), f"{name}.pt")
 
 if __name__ == "__main__":
-    train_model()
+    train()
