@@ -19,4 +19,3 @@ def create_sequences(data, seq_len=20):
         X.append(data[i:i+seq_len])
         y.append(data[i+seq_len, 0])
     return np.array(X), np.array(y)
-
